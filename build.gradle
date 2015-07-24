@@ -1,0 +1,49 @@
+task wrapper(type: Wrapper) {
+    gradleVersion = '2.4'
+}
+
+
+allprojects {
+	apply from: "$rootDir/gradle/versioning.gradle"
+
+}
+
+buildscript {
+    repositories {
+	maven {
+		url binaryRepositoryJCenterLocalUrl
+		credentials {
+			username = binaryRepositoryUserName
+			password = binaryRepositoryPassword
+		}
+	}
+	//jcenter()
+    }
+
+    dependencies {
+        classpath 'com.bmuschko:gradle-cargo-plugin:2.1.1'
+    }
+}
+
+def webProjects() {
+    subprojects.findAll { subproject -> subproject.plugins.hasPlugin('war') }
+}
+
+gradle.projectsEvaluated {
+    configure(webProjects()) {
+        apply plugin: 'com.bmuschko.cargo'
+
+        cargo {
+            containerId = serverContainerId
+	    port = serverPort.toInteger()
+	
+            remote {
+                hostname = serverHostName
+                username = serverUserName
+                password = serverPassword
+            }
+        }
+    }
+    
+}
+

@@ -1,0 +1,89 @@
+task wrapper(type: Wrapper) {
+    gradleVersion = '2.4'
+}
+
+project(':web') {
+
+	apply plugin: 'java'
+	apply plugin: 'war'
+	apply plugin: 'sonar-runner'
+	apply plugin: 'maven'
+	apply plugin: 'com.bmuschko.cargo'
+
+	repositories {
+		maven {
+			url binaryRepositoryJCenterLocalUrl
+			credentials {
+				username = binaryRepositoryUserName
+				password = binaryRepositoryPassword
+			}
+		}
+		maven {
+			url binaryRepositoryMavenLocalUrl
+			credentials {
+				username = binaryRepositoryUserName
+				password = binaryRepositoryPassword
+			}
+		}
+		//jcenter()
+		//maven()
+	}
+
+	dependencies {
+	    compile group: 'commons-io', name: 'commons-io', version: '1.4'
+	    compile group: 'log4j', name: 'log4j', version: '1.2.15', ext: 'jar'
+        }
+
+	task createBuildInfoFile << {
+		def buildInfoFile = new File("$buildDir/build-info.properties")
+		Properties props = new Properties()
+		props.setProperty('version', project.version.toString())
+		props.setProperty('timestamp', project.buildTimestamp)
+		props.store(buildInfoFile.newWriter(), null)
+	}
+	
+	war {
+		dependsOn createBuildInfoFile
+		baseName = appName
+		
+		from(buildDir) {
+			include 'build-info.properties'
+			into('WEB-INF/classes')
+		}
+	}
+
+	sonarRunner {
+	    sonarProperties {
+		property "sonar.host.url", sonarHostUrl
+		property "sonar.jdbc.url", sonarJdbcUrl
+		property "sonar.jdbc.driverClassName", sonarJdbcDriverClassName
+		property "sonar.jdbc.username", sonarJdbcUserName
+		property "sonar.jdbc.password", sonarJdbcPassword
+	    }
+	}
+
+	subprojects {
+		sonarRunner {
+			sonarProperties {
+				property "sonar.sourceEncoding", "UTF-8"
+			}
+		}
+	}
+
+	cargo {
+	    containerId = serverContainerId
+	    port = serverPort.toInteger()
+
+	    deployable {
+	        //file = new File ("$buildDir/libs/*.war")
+		context = appName
+	    }
+
+	    local {
+		homeDir = file(serverLocalHomeDir)
+	    }
+	}
+
+}
+
+
