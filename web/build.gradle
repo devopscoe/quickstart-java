@@ -1,5 +1,5 @@
 task wrapper(type: Wrapper) {
-    gradleVersion = '2.4'
+    gradleVersion = '2.5'
 }
 
 project(':web') {
@@ -70,17 +70,52 @@ project(':web') {
 		}
 	}
 
+	uploadArchives{
+		repositories{
+			mavenDeployer{
+				repository(url: binaryRepositoryReleasesUrl){
+					authentication(userName: binaryRepositoryUserName,password:binaryRepositoryPassword)
+				}
+			}
+		}
+	}
+	
+	repositories {
+		maven {
+			url binaryRepositoryReleasesUrl 
+		}
+	}
+	configurations {
+		downloadWar
+	}
+	dependencies {		
+		downloadWar ("$project.group:$appName:$project.version@war"){ 
+			 artifact {
+				name = "$appName"
+				extension = 'war'
+				type = 'war'
+			}
+    		}
+	}
+
+	task downloadBinaryArchive(type: Copy) {		
+		from configurations.downloadWar
+		into "$buildDir\\libs"		
+	}
+
 	cargo {
-	    containerId = serverContainerId
-	    port = serverPort.toInteger()
+	    containerId = config.server.containerId
+	    port = config.server.port.toInteger()
 
 	    deployable {
-	        //file = new File ("$buildDir/libs/*.war")
+	    	def fileName = appName+"-"+version
+	    	def filePath = "$buildDir/libs/$fileName"+".war"
+		file = new File ("$buildDir/libs/$fileName"+".war")
 		context = appName
 	    }
 
 	    local {
-		homeDir = file(serverLocalHomeDir)
+		homeDir = file(config.server.localHomeDir)
 	    }
 	}
 

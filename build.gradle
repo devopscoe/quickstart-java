@@ -1,5 +1,5 @@
 task wrapper(type: Wrapper) {
-    gradleVersion = '2.4'
+    gradleVersion = '2.5'
 }
 
 
@@ -7,6 +7,14 @@ allprojects {
 	apply from: "$rootDir/gradle/versioning.gradle"
 
 }
+
+//Read the environment specific configuration 
+def env = project.hasProperty('env') ? project.getProperty('env') : 'test'
+def configFile = file("$rootDir/gradle/config/envConfig.groovy")
+def parsedConfig = new ConfigSlurper(env).parse(configFile.toURL())
+
+//Assign the properties object to the global config object
+ext.config = parsedConfig
 
 buildscript {
     repositories {
@@ -34,13 +42,13 @@ gradle.projectsEvaluated {
         apply plugin: 'com.bmuschko.cargo'
 
         cargo {
-            containerId = serverContainerId
-	    port = serverPort.toInteger()
+            containerId = config.server.containerId
+	    port = config.server.port.toInteger()
 	
             remote {
-                hostname = serverHostName
-                username = serverUserName
-                password = serverPassword
+                hostname = config.server.hostname
+                username = config.server.username
+                password = config.server.password
             }
         }
     }
